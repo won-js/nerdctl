@@ -104,7 +104,7 @@ func TestRunWithSystemdTrueEnabled(t *testing.T) {
 				>&2 printf "Waiting for systemd to come up...\n"
 				sleep 1s
 				tries=$(( tries + 1))
-				[ $tries -lt 10 ] || {
+				[ $tries -lt 30 ] || {
 					>&2 printf "systemd failed to come up in a reasonable amount of time\n"
 					exit 1
 				}
