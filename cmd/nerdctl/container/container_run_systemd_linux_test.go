@@ -18,7 +18,6 @@ package container
 
 import (
 	"errors"
-	"runtime"
 	"testing"
 
 	"github.com/containerd/nerdctl/mod/tigron/expect"
@@ -38,8 +37,8 @@ func TestRunWithSystemdAlways(t *testing.T) {
 	}
 
 	testCase.Cleanup = func(data test.Data, helpers test.Helpers) {
-		containeName := data.Labels().Get("containerName")
-		helpers.Anyhow("container", "rm", "-f", containeName)
+		containerName := data.Labels().Get("containerName")
+		helpers.Anyhow("container", "rm", "-f", containerName)
 	}
 
 	testCase.SubTests = []*test.Case{
@@ -47,8 +46,8 @@ func TestRunWithSystemdAlways(t *testing.T) {
 			Description: "should mount cgroup filesystem as rw",
 			NoParallel:  true,
 			Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
-				containeName := data.Labels().Get("containerName")
-				return helpers.Command("run", "--name", containeName, "--systemd=always", "--entrypoint=/bin/bash", testutil.UbuntuImage, "-c", "mount | grep cgroup")
+				containerName := data.Labels().Get("containerName")
+				return helpers.Command("run", "--name", containerName, "--systemd=always", "--entrypoint=/bin/bash", testutil.UbuntuImage, "-c", "mount | grep cgroup")
 			},
 			Expected: test.Expects(expect.ExitCodeSuccess, nil, expect.Contains("(rw,")),
 		},
@@ -56,8 +55,8 @@ func TestRunWithSystemdAlways(t *testing.T) {
 			Description: "should expose SIGTERM+3 stop signal label",
 			NoParallel:  true,
 			Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
-				containeName := data.Labels().Get("containerName")
-				return helpers.Command("inspect", "--format", "{{json .Config.Labels}}", containeName)
+				containerName := data.Labels().Get("containerName")
+				return helpers.Command("inspect", "--format", "{{json .Config.Labels}}", containerName)
 			},
 			Expected: test.Expects(expect.ExitCodeSuccess, nil, expect.Contains("SIGRTMIN+3")),
 		},
@@ -67,12 +66,11 @@ func TestRunWithSystemdAlways(t *testing.T) {
 }
 
 func TestRunWithSystemdTrueEnabled(t *testing.T) {
-	if runtime.GOARCH != "amd64" {
-		t.Skip("This test is currently broken on arm with no emulation, as the Systemd image being used is amd64 only")
-	}
-
 	testCase := nerdtest.Setup()
-	testCase.Require = require.Not(nerdtest.Docker)
+	testCase.Require = require.All(
+		require.Amd64,
+		require.Not(nerdtest.Docker),
+	)
 
 	testCase.Setup = func(data test.Data, helpers test.Helpers) {
 		containerName := testutil.Identifier(t)
@@ -122,12 +120,11 @@ func TestRunWithSystemdTrueEnabled(t *testing.T) {
 }
 
 func TestRunWithSystemdTrueDisabled(t *testing.T) {
-	if runtime.GOARCH != "amd64" {
-		t.Skip("This test is currently broken on arm with no emulation, as the Systemd image being used is amd64 only")
-	}
-
 	testCase := nerdtest.Setup()
-	testCase.Require = require.Not(nerdtest.Docker)
+	testCase.Require = require.All(
+		require.Amd64,
+		require.Not(nerdtest.Docker),
+	)
 
 	testCase.Setup = func(data test.Data, helpers test.Helpers) {
 		data.Labels().Set("containerName", testutil.Identifier(t))
@@ -156,8 +153,8 @@ func TestRunWithSystemdFalse(t *testing.T) {
 	}
 
 	testCase.Cleanup = func(data test.Data, helpers test.Helpers) {
-		containeName := data.Labels().Get("containerName")
-		helpers.Anyhow("container", "rm", "-f", containeName)
+		containerName := data.Labels().Get("containerName")
+		helpers.Anyhow("container", "rm", "-f", containerName)
 	}
 
 	testCase.SubTests = []*test.Case{
@@ -165,8 +162,8 @@ func TestRunWithSystemdFalse(t *testing.T) {
 			Description: "should mount cgroup filesystem as ro",
 			NoParallel:  true,
 			Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
-				containeName := data.Labels().Get("containerName")
-				return helpers.Command("run", "--name", containeName, "--systemd=false", "--entrypoint=/bin/bash", testutil.UbuntuImage, "-c", "mount | grep cgroup")
+				containerName := data.Labels().Get("containerName")
+				return helpers.Command("run", "--name", containerName, "--systemd=false", "--entrypoint=/bin/bash", testutil.UbuntuImage, "-c", "mount | grep cgroup")
 			},
 			Expected: test.Expects(expect.ExitCodeSuccess, nil, expect.Contains("(ro,")),
 		},
@@ -174,8 +171,8 @@ func TestRunWithSystemdFalse(t *testing.T) {
 			Description: "should expose SIGTERM stop signal label",
 			NoParallel:  true,
 			Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
-				containeName := data.Labels().Get("containerName")
-				return helpers.Command("inspect", "--format", "{{json .Config.Labels}}", containeName)
+				containerName := data.Labels().Get("containerName")
+				return helpers.Command("inspect", "--format", "{{json .Config.Labels}}", containerName)
 			},
 			Expected: test.Expects(expect.ExitCodeSuccess, nil, expect.Contains("SIGTERM")),
 		},
@@ -193,8 +190,8 @@ func TestRunWithNoSystemd(t *testing.T) {
 	}
 
 	testCase.Cleanup = func(data test.Data, helpers test.Helpers) {
-		containeName := data.Labels().Get("containerName")
-		helpers.Anyhow("container", "rm", "-f", containeName)
+		containerName := data.Labels().Get("containerName")
+		helpers.Anyhow("container", "rm", "-f", containerName)
 	}
 
 	testCase.SubTests = []*test.Case{
@@ -202,8 +199,8 @@ func TestRunWithNoSystemd(t *testing.T) {
 			Description: "should mount cgroup filesystem as ro",
 			NoParallel:  true,
 			Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
-				containeName := data.Labels().Get("containerName")
-				return helpers.Command("run", "--name", containeName, "--entrypoint=/bin/bash", testutil.UbuntuImage, "-c", "mount | grep cgroup")
+				containerName := data.Labels().Get("containerName")
+				return helpers.Command("run", "--name", containerName, "--entrypoint=/bin/bash", testutil.UbuntuImage, "-c", "mount | grep cgroup")
 			},
 			Expected: test.Expects(expect.ExitCodeSuccess, nil, expect.Contains("(ro,")),
 		},
@@ -211,8 +208,8 @@ func TestRunWithNoSystemd(t *testing.T) {
 			Description: "should expose SIGTERM stop signal label",
 			NoParallel:  true,
 			Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
-				containeName := data.Labels().Get("containerName")
-				return helpers.Command("inspect", "--format", "{{json .Config.Labels}}", containeName)
+				containerName := data.Labels().Get("containerName")
+				return helpers.Command("inspect", "--format", "{{json .Config.Labels}}", containerName)
 			},
 			Expected: test.Expects(expect.ExitCodeSuccess, nil, expect.Contains("SIGTERM")),
 		},
@@ -222,12 +219,11 @@ func TestRunWithNoSystemd(t *testing.T) {
 }
 
 func TestRunWithSystemdPrivilegedError(t *testing.T) {
-	if runtime.GOARCH != "amd64" {
-		t.Skip("This test is currently broken on arm with no emulation, as the Systemd image being used is amd64 only")
-	}
-
 	testCase := nerdtest.Setup()
-	testCase.Require = require.Not(nerdtest.Docker)
+	testCase.Require = require.All(
+		require.Amd64,
+		require.Not(nerdtest.Docker),
+	)
 
 	testCase.Command = test.Command("run", "--privileged", "--rm", "--systemd=always", "--entrypoint=/sbin/init", testutil.SystemdImage)
 	testCase.Expected = test.Expects(1, []error{errors.New("if --privileged is used with systemd `--security-opt privileged-without-host-devices` must also be used")}, nil)
@@ -236,12 +232,11 @@ func TestRunWithSystemdPrivilegedError(t *testing.T) {
 }
 
 func TestRunWithSystemdPrivilegedSuccess(t *testing.T) {
-	if runtime.GOARCH != "amd64" {
-		t.Skip("This test is currently broken on arm with no emulation, as the Systemd image being used is amd64 only")
-	}
-
 	testCase := nerdtest.Setup()
-	testCase.Require = require.Not(nerdtest.Docker)
+	testCase.Require = require.All(
+		require.Amd64,
+		require.Not(nerdtest.Docker),
+	)
 
 	testCase.Setup = func(data test.Data, helpers test.Helpers) {
 		containerName := testutil.Identifier(t)
