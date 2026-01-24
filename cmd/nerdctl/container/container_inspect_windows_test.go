@@ -17,6 +17,7 @@
 package container
 
 import (
+	"encoding/json"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -24,6 +25,8 @@ import (
 	"github.com/containerd/nerdctl/mod/tigron/expect"
 	"github.com/containerd/nerdctl/mod/tigron/test"
 	"github.com/containerd/nerdctl/mod/tigron/tig"
+
+	"github.com/containerd/nerdctl/v2/pkg/inspecttypes/dockercompat"
 	"github.com/containerd/nerdctl/v2/pkg/testutil"
 	"github.com/containerd/nerdctl/v2/pkg/testutil/nerdtest"
 )
@@ -45,19 +48,22 @@ func TestInspectProcessContainerContainsLabel(t *testing.T) {
 
 	testCase.Command = func(data test.Data, helpers test.Helpers) test.TestableCommand {
 		containerName := data.Labels().Get("containerName")
-		return helpers.Command("inspect", containerName)
+		return helpers.Command("inspect", containerName, "--format", "{{json .Config.Labels}}")
 	}
 
 	testCase.Expected = func(data test.Data, helpers test.Helpers) *test.Expected {
 		return &test.Expected{
 			ExitCode: expect.ExitCodeSuccess,
-			Output: expect.All(func(stdout string, t tig.T) {
-				containerName := data.Labels().Get("containerName")
-				inspect := nerdtest.InspectContainer(helpers, containerName)
-				lbs := inspect.Config.Labels
-				assert.Equal(t, "foo", lbs["foo"])
-				assert.Equal(t, "bar", lbs["bar"])
-			}),
+			Output: func(stdout string, t tig.T) {
+				var dc []dockercompat.Container
+
+				err := json.Unmarshal([]byte(stdout), &dc)
+				assert.NilError(t, err)
+				assert.Equal(t, 1, len(dc))
+
+				assert.Equal(t, "foo", dc[0].Config.Labels["foo"])
+				assert.Equal(t, "bar", dc[0].Config.Labels["bar"])
+			},
 		}
 	}
 
@@ -88,13 +94,21 @@ func TestInspectHyperVContainerContainsLabel(t *testing.T) {
 	testCase.Expected = func(data test.Data, helpers test.Helpers) *test.Expected {
 		return &test.Expected{
 			ExitCode: expect.ExitCodeSuccess,
-			Output: expect.All(func(stdout string, t tig.T) {
-				containerName := data.Labels().Get("containerName")
-				inspect := nerdtest.InspectContainer(helpers, containerName)
-				lbs := inspect.Config.Labels
-				assert.Equal(t, "foo", lbs["foo"])
-				assert.Equal(t, "bar", lbs["bar"])
-			}),
+			Output: func(stdout string, t tig.T) {
+				var dc []dockercompat.Container
+
+				err := json.Unmarshal([]byte(stdout), &dc)
+				assert.NilError(t, err)
+				assert.Equal(t, 1, len(dc))
+
+				//check with HCS if the container is ineed a VM
+				isHypervContainer, err := testutil.HyperVContainer(dc[0])
+				assert.NilError(t, err)
+				assert.Equal(t, true, isHypervContainer)
+
+				assert.Equal(t, "foo", dc[0].Config.Labels["foo"])
+				assert.Equal(t, "bar", dc[0].Config.Labels["bar"])
+			},
 		}
 	}
 
